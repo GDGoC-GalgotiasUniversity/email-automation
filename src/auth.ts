@@ -17,6 +17,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   session: { strategy: "jwt" },
+  pages: {
+    error: "/auth-error",
+  },
+  events: {
+    async signIn({ user, account }) {
+      console.log(
+        `[auth] signed in as ${user?.email} ` +
+          `(refresh token: ${account?.refresh_token ? "yes" : "no"})`
+      );
+    },
+  },
   callbacks: {
     async jwt({ token, account }) {
       if (account) {
