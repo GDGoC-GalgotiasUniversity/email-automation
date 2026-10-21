@@ -2,16 +2,15 @@
  * Diagnose Google OAuth redirect URI registration.
  *
  * Google validates the `redirect_uri` BEFORE the user logs in, so we can
- * probe the authorize endpoint to learn exactly which URIs are registered
- * for your OAuth client -- no browser login required.
+ * probe the authorize endpoint to learn exactly which URIs are actually
+ * registered for your OAuth client -- no browser login required.
  *
  * Usage:
  *   pnpm check:oauth
  *
  * Env (from .env.local):
- *   GOOGLE_CLIENT_ID   (required)
- *   GOOGLE_CLIENT_SECRET (optional, for token-endpoint sanity check)
- *   NEXTAUTH_URL       (optional, the URL this app is served from)
+ *   GOOGLE_CLIENT_ID     (required)
+ *   NEXTAUTH_URL         (the URL this app is served from)
  */
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
@@ -37,7 +36,6 @@ function loadEnvLocal() {
 loadEnvLocal();
 
 const clientId = process.env.GOOGLE_CLIENT_ID;
-const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const authUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
 if (!clientId || clientId.includes("your-google-client-id")) {
@@ -48,14 +46,9 @@ if (!clientId || clientId.includes("your-google-client-id")) {
 }
 
 const AUTHORIZE = "https://accounts.google.com/o/oauth2/v2/auth";
-const TOKEN = "https://oauth2.googleapis.com/token";
+const CALLBACK_PATH = "/api/auth/callback/google";
+const CONTROL_URI = "https://example.invalid/definitely-not-registered-callback";
 
-/**
- * Google validates redirect_uri BEFORE the user logs in, so it rejects the
- * request immediately with a 302 to `/signin/oauth/error?authError=...`
- * (the base64 payload decodes to the error name, e.g. "redirect_uri_mismatch").
- * A registered URI instead continues to the sign-in page.
- */
 async function isRegistered(redirectUri) {
   const url =
     `${AUTHORIZE}?response_type=code` +
@@ -67,24 +60,21 @@ async function isRegistered(redirectUri) {
     redirect: "manual",
     headers: { "User-Agent": "Mozilla/5.0" },
   });
-  const location = res.headers.get("location") || "";
   if (res.status !== 302) return false;
-  if (location.includes("/signin/oauth/error")) return false;
-  return true;
+  const location = res.headers.get("location") || "";
+  return !location.includes("/signin/oauth/error");
 }
 
 const origin = new URL(authUrl);
-const path = "/api/auth/callback/google";
+const port = origin.port || "3000";
 
 const candidates = [
-  `${origin.protocol}//${origin.host}${path}`,
-  `${origin.protocol}//${origin.host}${path}/`,
-  `http://localhost:3000${path}`,
-  `https://localhost:3000${path}`,
-  `http://127.0.0.1:${origin.port || "3000"}${path}`,
-  `https://127.0.0.1:${origin.port || "3000"}${path}`,
-  `http://localhost${path}`,
-  "https://example.com/definitely-not-registered",
+  `${origin.protocol}//${origin.host}${CALLBACK_PATH}`,
+  `http://localhost:${port}${CALLBACK_PATH}`,
+  `https://localhost:${port}${CALLBACK_PATH}`,
+  `http://127.0.0.1:${port}${CALLBACK_PATH}`,
+  `https://127.0.0.1:${port}${CALLBACK_PATH}`,
+  CONTROL_URI,
 ];
 
 console.log(`OAuth client : ${clientId}`);
@@ -100,7 +90,7 @@ for (const uri of candidates) {
     console.error(`  network error for ${uri}: ${e.message}`);
   }
   results.push({ uri, ok });
-  const isControl = uri.includes("definitely-not-registered");
+  const isControl = uri === CONTROL_URI;
   const label = isControl ? "(control - must be REJECTED)" : "";
   console.log(`  ${ok ? "REGISTERED" : "not registered"}  ${uri} ${label}`);
 }

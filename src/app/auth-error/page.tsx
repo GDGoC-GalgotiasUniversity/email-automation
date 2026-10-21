@@ -5,15 +5,17 @@ import { Suspense } from "react";
 
 const HINTS: Record<string, string> = {
   OAuthSignin: "Could not start the sign-in request. Check GOOGLE_CLIENT_ID/SECRET.",
-  OAuthCallback: "Google did not send the authorization code back. Check the redirect URI.",
+  OAuthCallback: "Google returned an error during the callback. Run `pnpm check:oauth` to verify the redirect URI.",
+  OAuthCallbackError: "Google rejected the sign-in request. Usually a redirect URI mismatch -- run `pnpm check:oauth`.",
   OAuthCreateAccount: "Google tried to create a new account for this email.",
   OAuthAccountNotLinked: "This email is linked to a different provider.",
   EmailSignin: "The email sign-in link was invalid or expired.",
-  Callback: "The OAuth callback failed. Check the redirect URI matches exactly.",
+  Callback: "The OAuth callback failed. Run `pnpm check:oauth` to verify the redirect URI.",
   OAuthAccountNotVerified: "The Google account is not verified.",
   AccessDenied: "Permission denied. Add your account under OAuth consent screen > Test users.",
-  Configuration: "The server is misconfigured. Check the env variables.",
+  Configuration: "Server configuration problem. Run `pnpm check:oauth` and check the server logs.",
   Verification: "Google verification problem. The OAuth consent screen may be incomplete.",
+  CallbackRouteError: "The callback route failed. Check the server logs for the [auth][cause] line.",
 };
 
 function ErrorContent() {
@@ -29,6 +31,10 @@ function ErrorContent() {
         {error}
       </code>
       {hint && <p className="max-w-md text-center text-gray-700">{hint}</p>}
+      <p className="max-w-md text-center text-sm text-gray-500">
+        Run <code className="bg-gray-100 px-1 rounded">pnpm check:oauth</code>{" "}
+        in the project folder to verify your Google redirect URI.
+      </p>
       <a
         href="/"
         className="mt-2 px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"

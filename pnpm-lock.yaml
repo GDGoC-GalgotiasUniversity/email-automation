@@ -40,7 +40,7 @@ importers:
         specifier: ^20
         version: 20.19.43
       '@types/nodemailer':
-        specifier: ^8.0.2
+        specifier: 8.0.2
         version: 8.0.2
       '@types/papaparse':
         specifier: ^5.5.2

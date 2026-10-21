@@ -6,6 +6,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      // "state" enables CSRF protection on the callback, "nonce" is required
+      // for OIDC and makes Google return the "iss" parameter that
+      // oauth4webapi validates. Without these the callback fails with
+      // `response parameter "iss" (issuer) missing`.
+      checks: ["pkce", "state", "nonce"],
       authorization: {
         params: {
           scope:

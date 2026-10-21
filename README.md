@@ -48,7 +48,8 @@ Send personalized emails (with inline embedded images) to a list of recipients f
 
    This asks Google which redirect URIs are actually registered for your client
    and prints exactly what to paste into the Google Cloud Console. It needs no
-   browser login.
+   browser login. The dev server also runs this check automatically at startup
+   and prints the same instructions if something is wrong.
 
 5. Run:
 
@@ -89,4 +90,8 @@ Columns are matched case-insensitively by name containing "name"/"email".
 - Sending uses your Gmail account; daily sending limits apply.
 - Tokens are stored in an encrypted JWT session cookie.
 - If sign-in fails, the app redirects to `/auth-error`, which shows the exact
-  error code (e.g. `AccessDenied`, `OAuthCallback`).
+  error code (e.g. `AccessDenied`, `OAuthCallbackError`).
+- The Google provider is configured with `checks: ["pkce", "state", "nonce"]`.
+  The `state` check gives the callback CSRF protection and `nonce` is required
+  for OIDC -- without it Google omits the `iss` parameter and the callback
+  fails with `response parameter "iss" (issuer) missing`.
